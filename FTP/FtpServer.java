@@ -27,59 +27,70 @@ public class FtpServer {
 	}
 
 	public void server() throws IOException {
-		ServerSocket serverSocket = new ServerSocket(portNumber);
+		final ServerSocket serverSocket = new ServerSocket(portNumber);
 		System.out.println("server is opened");
-		Socket clientSocket;
 
-		BufferedReader in;
-		PrintWriter out;
-		StringTokenizer st;
+		BufferedReader in = null;
+		PrintWriter out = null;
+		StringTokenizer st = null;
 
 		while (true) {
-			clientSocket = serverSocket.accept();
+			final Socket clientSocket = serverSocket.accept();
 			System.out.println("connected..");
 
-			in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-			out = new PrintWriter(clientSocket.getOutputStream(), true);
-			
-			String request, response;
-
-			while ((request = in.readLine()) != null) {
-				if ("Done".equals(request)) {
-					out.println("Done");
-					break;
-				}
-
-				String command;
-				String contents = null;
-				st = new StringTokenizer(request);
-				command = st.nextToken();
-				
-				//if contents is null, request is "CD"
-				if (st.hasMoreTokens()) {
-					contents = st.nextToken();
-				}
-				response = processRequest(command, contents, clientSocket, in, out);
-				if ("wrong".equals(response)) continue;
-				
-				// case of not GET
-				if (!command.equals("GET")) {
-					out.println(String.valueOf(status));
-					if (status > 0) {
-						// CD or LIST
-						if (!command.equals("PUT")) {
-							out.println(String.valueOf(response).length());
-						}
-						out.println(response);
-					} else {
-						out.println(statusPhrase);
+			new Thread(new Runnable() {
+				public void run() {
+					try {
+						serve(in, out, clientSocket, st);
+						System.out.println("connect closed.");
+						in.close();
+						out.close();
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
 				}
-				
+			}).start();
+		}
+	}
+	
+	private void serve(BufferedReader in, PrintWriter out, Socket clientSocket, StringTokenizer st) throws IOException {
+		in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+		out = new PrintWriter(clientSocket.getOutputStream(), true);
+		
+		String request, response;
+
+		while ((request = in.readLine()) != null) {
+			if ("Done".equals(request)) {
+				out.println("Done");
+				break;
 			}
-			System.out.println("connect closed.");
-			in.close();
-			out.close();
+
+			String command;
+			String contents = null;
+			st = new StringTokenizer(request);
+			command = st.nextToken();
+			
+			//if contents is null, request is "CD"
+			if (st.hasMoreTokens()) {
+				contents = st.nextToken();
+			}
+			response = processRequest(command, contents, clientSocket, in, out);
+			if ("wrong".equals(response)) continue;
+			
+			// case of not GET
+			if (!command.equals("GET")) {
+				out.println(String.valueOf(status));
+				if (status > 0) {
+					// CD or LIST
+					if (!command.equals("PUT")) {
+						out.println(String.valueOf(response).length());
+					}
+					out.println(response);
+				} else {
+					out.println(statusPhrase);
+				}
+			}
+			
 		}
 	}
 
