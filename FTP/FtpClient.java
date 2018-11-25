@@ -26,27 +26,29 @@ public class FtpClient {
 
 	public void client() throws IOException {
 		String request, response;
-	
+
 		BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
 
 		Socket clientSocket = new Socket(serverIP, portNumber);
 
-	//	DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
+		// DataOutputStream outToServer = new
+		// DataOutputStream(clientSocket.getOutputStream());
 
 		BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
 		while (((request = inFromUser.readLine()) != null)) {
-		response = processRequest(request, inFromServer, clientSocket);
-		if (response.equals("Done")) break;
-		System.out.println(response);
+			if (request.equals("")) continue;
+			response = processRequest(request, inFromServer, clientSocket);
+			if (response.equals("Done"))
+				break;
+			System.out.println(response);
 		}
 
 		clientSocket.close();
 		return;
 	}
 
-	private String processRequest(String request, BufferedReader inFromServer,
-			Socket clientSocket) throws IOException {
+	private String processRequest(String request, BufferedReader inFromServer, Socket clientSocket) throws IOException {
 		StringTokenizer st = new StringTokenizer(request);
 		String command = st.nextToken();
 		String contents = null;
@@ -96,7 +98,7 @@ public class FtpClient {
 			int fileSize = Integer.parseInt(inFromServer.readLine());
 			DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
 			FileOutputStream fos = new FileOutputStream(contents);
-			
+
 			byte[] buffer = new byte[1024 * 8];
 
 			int totalLength = 0;
@@ -113,18 +115,16 @@ public class FtpClient {
 			} else {
 				response = "Download Failed";
 			}
-			
+
 			fos.close();
-		} 
-		else {
+		} else {
 			response = inFromServer.readLine();
 		}
 
 		return response;
 	}
 
-	private String putFile(Socket clientSocket, BufferedReader inFromServer, String contents)
-			throws IOException {
+	private String putFile(Socket clientSocket, BufferedReader inFromServer, String contents) throws IOException {
 		String response = "";
 		PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 		File file = new File(contents);
@@ -136,16 +136,17 @@ public class FtpClient {
 		}
 		DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 		out.println(String.valueOf(file.length()));
-	///	outToServer.writeBytes(String.valueOf(file.length()) + System.getProperty("line.separator"));
+		/// outToServer.writeBytes(String.valueOf(file.length()) +
+		/// System.getProperty("line.separator"));
 		FileInputStream fis = new FileInputStream(file);
 
 		byte[] buffer = new byte[1024 * 8];
 		int length = 0;
-		
+
 		while ((length = fis.read(buffer)) > 0) {
 			outToServer.write(buffer, 0, length);
 		}
-		
+
 		outToServer.flush();
 		fis.close();
 		status = Integer.parseInt(inFromServer.readLine());
