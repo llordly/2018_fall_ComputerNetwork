@@ -7,19 +7,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.util.Iterator;
 import java.util.Properties;
-import java.util.Set;
 import java.util.StringTokenizer;
 
 public class FtpServer {
@@ -27,7 +17,7 @@ public class FtpServer {
 	private String serverIP = "127.0.0.1";
 	private int status = 0;
 	private String statusPhrase = "";
-	private ByteBuffer headerBuffer;
+	private String currentPath = System.getProperty("user.dir");
 
 	public FtpServer() {
 
@@ -36,118 +26,38 @@ public class FtpServer {
 	public FtpServer(int portNumber) {
 		this.portNumber = portNumber;
 	}
-	
-	private void initializeHeaderBuffer(String response) {
-		CharBuffer chars = CharBuffer.allocate(50);
-		chars.put(String.valueOf(status));
-		chars.put(System.getProperty("line.separator"));
-		
-		if (status < 0) {
-			chars.put(statusPhrase);
-			chars.put(System.getProperty("line.separator"));
-		}
-		chars.flip();
-		headerBuffer = Charset.forName("UTF-8").encode(chars);
-	}
 
 	public void server() throws IOException {
-		Selector selector = Selector.open();
-
-		ServerSocketChannel serverChannel = ServerSocketChannel.open();
-		serverChannel.configureBlocking(false);
-		ServerSocket serverSocket = serverChannel.socket();
-		InetSocketAddress address = new InetSocketAddress(portNumber);
-		serverSocket.bind(address);
-
+		final ServerSocket serverSocket = new ServerSocket(portNumber);
 		System.out.println("server is opened");
-
-		serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
 		BufferedReader in = null;
 		PrintWriter out = null;
 		StringTokenizer st = null;
 
-		new Thread(new Runnable() {
-			public void run() {
-				while (true) {
+		while (true) {
+			final Socket clientSocket = serverSocket.accept();
+			System.out.println("connected..");
+
+			new Thread(new Runnable() {
+				public void run() {
 					try {
-						int keyCount = selector.select();
-						
-						if (keyCount == 0) {
-							continue;
-						}
-						
-						Set<SelectionKey> readKeys = selector.selectedKeys();
-
-						Iterator<SelectionKey> iterator = readKeys.iterator();
-						while (iterator.hasNext()) {
-							SelectionKey key = iterator.next();
-							iterator.remove();
-							try {
-								if (key.isAcceptable()) {
-									ServerSocketChannel server = (ServerSocketChannel) key.channel();
-									SocketChannel client = server.accept();
-
-									client.configureBlocking(false);
-									client.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
-									System.out.println("Accepted connection from" + client);
-								}
-								if (key.isWritable()) {
-									SocketChannel client = (SocketChannel) key.channel();
-									//channel data from client
-									ByteBuffer buffer = (ByteBuffer) key.attachment();
-									String channelData = Charset.forName("UTF-8").decode(buffer).toString();
-									//process to request about channel data
-									
-									//attach channel data
-									client.write(headerBuffer);
-//
-//									while (buffer.hasRemaining()) {
-//										if (client.write(buffer) == 0) {
-//											break;
-//										}
-//									}
-//
-//									client.close();
-								}
-								if (key.isReadable()) {
-									SocketChannel client = (SocketChannel) key.channel();
-									ByteBuffer buffer = (ByteBuffer) key.attachment();
-									while (buffer.hasRemaining()) {
-										if (client.write(buffer) == 0) {
-											break;
-										}
-									}
-
-									client.close();
-								}
-							} catch (Exception e) {
-								key.cancel();
-								try {
-									key.channel().close();
-								} catch (Exception e2) {
-								}
-							}
-						}
-//						final Socket clientSocket = serverSocket.accept();
-//						System.out.println("connected..");
-//
-//						serve(in, out, clientSocket, st);
-//						System.out.println("connect closed.");
-//						in.close();
-//						out.close();
+						serve(in, out, clientSocket, st);
+						System.out.println("connect closed.");
+						in.close();
+						out.close();
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
-			}
-		}).start();
+			}).start();
+		}
 	}
-
+	
 	private void serve(BufferedReader in, PrintWriter out, Socket clientSocket, StringTokenizer st) throws IOException {
 		in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 		out = new PrintWriter(clientSocket.getOutputStream(), true);
-
+		
 		String request, response;
 
 		while ((request = in.readLine()) != null) {
@@ -160,15 +70,14 @@ public class FtpServer {
 			String contents = null;
 			st = new StringTokenizer(request);
 			command = st.nextToken();
-
-			// if contents is null, request is "CD"
+			
+			//if contents is null, request is "CD"
 			if (st.hasMoreTokens()) {
 				contents = st.nextToken();
 			}
 			response = processRequest(command, contents, clientSocket, in, out);
-			if ("wrong".equals(response))
-				continue;
-
+			if ("wrong".equals(response)) continue;
+			
 			// case of not GET
 			if (!command.equals("GET")) {
 				out.println(String.valueOf(status));
@@ -182,7 +91,7 @@ public class FtpServer {
 					out.println(statusPhrase);
 				}
 			}
-
+			
 		}
 	}
 
@@ -213,18 +122,19 @@ public class FtpServer {
 
 	private String listFile(String contents) throws IOException {
 		String response = "";
-
+		
 		if (contents == null) {
 			status = -6;
 			statusPhrase = "There are not enough commands.";
 			return response;
 		}
-
+		
 		File directory = new File(contents);
 		if (!directory.isAbsolute()) {
-			directory = new File(System.getProperty("user.dir") + File.separator + contents);
+//			directory = new File(System.getProperty("user.dir") + File.separator + contents);
+			directory = new File(currentPath + File.separator + contents);
 		}
-
+		
 		if (!directory.isDirectory()) {
 			status = -5;
 			statusPhrase = "Failed - directory name is invalid";
@@ -243,16 +153,17 @@ public class FtpServer {
 				response += ",";
 			}
 		}
-
+		
 		return response;
 	}
 
 	private void pushFile(String contents, Socket clientSocket, PrintWriter out) throws IOException {
 		String response = "";
-
+		
 		File file = new File(contents);
 		if (!file.isAbsolute()) {
-			file = new File(System.getProperty("user.dir") + File.separator + contents);
+//			file = new File(System.getProperty("user.dir") + File.separator + contents);
+			file = new File(currentPath + File.separator + contents);
 		}
 		/*
 		 * if File is not in this server or Path is not accurate, first line is status
@@ -264,13 +175,15 @@ public class FtpServer {
 			out.println(status);
 			out.println(statusPhrase);
 			return;
-		} else if (file.isDirectory()) {
+		}
+		else if (file.isDirectory()) {
 			status = -2;
 			statusPhrase = "Failed - directory can not be downloaded";
 			out.println(status);
 			out.println(statusPhrase);
 			return;
-		} else {
+		}
+		else {
 			FileInputStream fis = new FileInputStream(file);
 			DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
 			status = 1;// status code - OK
@@ -285,32 +198,35 @@ public class FtpServer {
 			while ((length = fis.read(buffer)) > 0) {
 				dos.write(buffer, 0, length);
 			}
-
+			
 			dos.flush();
 			fis.close();
 		}
 		return;
 	}
 
-	private String getFile(String contents, Socket clientSocket, BufferedReader in) throws IOException {
+	private synchronized String getFile(String contents, Socket clientSocket, BufferedReader in) throws IOException {
 		String response = "";
 		int fileSize;
 		try {
 			fileSize = Integer.parseInt(in.readLine());
-		} catch (NumberFormatException e) {
+		}
+		catch (NumberFormatException e) {
 			status = -8;
 			statusPhrase = "Failed for wrong file name";
 			return response;
 		}
-
+		
+		File file = new File(currentPath + File.separator + contents);
+		
 		DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
-		FileOutputStream fos = new FileOutputStream(contents);
+		FileOutputStream fos = new FileOutputStream(file);
 
 		byte[] buffer = new byte[1024 * 8];
 
 		int totalLength = 0;
 		int length = 0;
-
+		
 		while ((length = dis.read(buffer)) != -1) {
 			totalLength += length;
 			fos.write(buffer, 0, length);
@@ -322,8 +238,6 @@ public class FtpServer {
 			status = 1; // status code - OK
 			response = contents + " transferred/ " + String.valueOf(fileSize) + " bytes";
 		} else {
-			// System.out.println("file size : " + fileSize);
-			// System.out.println("totalLength : " + totalLength);
 			status = -10; // status code - failed
 			statusPhrase = "Failed for unknown reason";
 			if (totalLength > fileSize) {
@@ -331,12 +245,12 @@ public class FtpServer {
 				statusPhrase = "Failed for File corruption. Please put again";
 			}
 			fos.close();
-			File file = new File(contents);
-			if (!file.isAbsolute()) {
-				file = new File(System.getProperty("user.dir") + File.separator + contents);
+			File existFile = new File(contents);
+			if (!existFile.isAbsolute()) {
+				existFile = new File(currentPath + File.separator + contents);
 			}
-			if (file.exists())
-				file.delete();
+			if (existFile.exists())
+				existFile.delete();
 			return response;
 		}
 		fos.close();
@@ -348,11 +262,13 @@ public class FtpServer {
 		String response = "";
 		if (contents == null) {
 			status = 1;
-			return response = System.getProperty("user.dir");
+			//return response = System.getProperty("user.dir");
+			return response = currentPath;
 		}
 		File directory = new File(contents);
 		if (!directory.isAbsolute()) {
-			directory = new File(System.getProperty("user.dir") + File.separator + contents);
+//			directory = new File(System.getProperty("user.dir") + File.separator + contents);
+			directory = new File(currentPath + File.separator + contents);
 		}
 		if (!directory.exists()) {
 			status = -4;
@@ -366,8 +282,9 @@ public class FtpServer {
 		}
 		// change current directory
 		String path = directory.getCanonicalPath();
-		Properties prop = System.getProperties();
-		prop.setProperty("user.dir", path);
+//		Properties prop = System.getProperties();
+//		prop.setProperty("user.dir", path);
+		currentPath = path;
 		status = 1; // status code - OK
 		// return changed path's canonical path
 		return path;
