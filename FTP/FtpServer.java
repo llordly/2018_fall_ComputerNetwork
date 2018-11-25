@@ -17,7 +17,6 @@ public class FtpServer {
 	private String serverIP = "127.0.0.1";
 	private int status = 0;
 	private String statusPhrase = "";
-	private String currentPath = System.getProperty("user.dir");
 
 	public FtpServer() {
 
@@ -42,19 +41,20 @@ public class FtpServer {
 			new Thread(new Runnable() {
 				public void run() {
 					try {
-						serve(in, out, clientSocket, st);
+						String currentPath = System.getProperty("user.dir");
+						serve(in, out, clientSocket, st, currentPath);
 						System.out.println("connect closed.");
 						in.close();
 						out.close();
 					} catch (Exception e) {
-						e.printStackTrace();
+						System.out.println("connect closed with unknown reason");
 					}
 				}
 			}).start();
 		}
 	}
 	
-	private void serve(BufferedReader in, PrintWriter out, Socket clientSocket, StringTokenizer st) throws IOException {
+	private void serve(BufferedReader in, PrintWriter out, Socket clientSocket, StringTokenizer st, String currentPath) throws IOException {
 		in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 		out = new PrintWriter(clientSocket.getOutputStream(), true);
 		
@@ -75,7 +75,8 @@ public class FtpServer {
 			if (st.hasMoreTokens()) {
 				contents = st.nextToken();
 			}
-			response = processRequest(command, contents, clientSocket, in, out);
+			response = processRequest(command, contents, clientSocket, in, out, currentPath);
+			if (command.equals("CD")) currentPath = response;
 			if ("wrong".equals(response)) continue;
 			
 			// case of not GET
@@ -96,20 +97,20 @@ public class FtpServer {
 	}
 
 	private String processRequest(String command, String contents, Socket clientSocket, BufferedReader in,
-			PrintWriter out) throws IOException {
+			PrintWriter out, String currentPath) throws IOException {
 		String response = null;
 		switch (command) {
 		case "LIST":
-			response = listFile(contents);
+			response = listFile(contents, currentPath);
 			break;
 		case "GET":
-			pushFile(contents, clientSocket, out);
+			pushFile(contents, clientSocket, out, currentPath);
 			break;
 		case "PUT":
-			response = getFile(contents, clientSocket, in);
+			response = getFile(contents, clientSocket, in, currentPath);
 			break;
 		case "CD":
-			response = changeDirect(contents);
+			response = changeDirect(contents, currentPath);
 			break;
 		default:
 			out.println("Command is wrong");
@@ -120,7 +121,7 @@ public class FtpServer {
 		return response;
 	}
 
-	private String listFile(String contents) throws IOException {
+	private String listFile(String contents, String currentPath) throws IOException {
 		String response = "";
 		
 		if (contents == null) {
@@ -157,7 +158,7 @@ public class FtpServer {
 		return response;
 	}
 
-	private void pushFile(String contents, Socket clientSocket, PrintWriter out) throws IOException {
+	private void pushFile(String contents, Socket clientSocket, PrintWriter out, String currentPath) throws IOException {
 		String response = "";
 		
 		File file = new File(contents);
@@ -205,7 +206,7 @@ public class FtpServer {
 		return;
 	}
 
-	private synchronized String getFile(String contents, Socket clientSocket, BufferedReader in) throws IOException {
+	private synchronized String getFile(String contents, Socket clientSocket, BufferedReader in, String currentPath) throws IOException {
 		String response = "";
 		int fileSize;
 		try {
@@ -258,7 +259,7 @@ public class FtpServer {
 		return response;
 	}
 
-	private String changeDirect(String contents) throws IOException {
+	private String changeDirect(String contents, String currentPath) throws IOException {
 		String response = "";
 		if (contents == null) {
 			status = 1;
@@ -273,12 +274,12 @@ public class FtpServer {
 		if (!directory.exists()) {
 			status = -4;
 			statusPhrase = "Failed - directory is not exists";
-			return null;
+			return currentPath;
 		}
 		if (!directory.isDirectory()) {
 			status = -3;// status code
 			statusPhrase = "Failed - directory name is invalid";
-			return null;
+			return currentPath;
 		}
 		// change current directory
 		String path = directory.getCanonicalPath();
