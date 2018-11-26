@@ -2,7 +2,7 @@ import java.io.IOException;
 
 public class Client {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		FtpClient ftpClient;
 		if (args.length == 1) {
@@ -13,6 +13,7 @@ public class Client {
 		}
 		else
 			return;
+
 		ftpClient.client();
 	}
 

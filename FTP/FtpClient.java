@@ -33,9 +33,11 @@ public class FtpClient {
 
 		// DataOutputStream outToServer = new
 		// DataOutputStream(clientSocket.getOutputStream());
-
+		
 		BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
+				
+	
+		
 		while (((request = inFromUser.readLine()) != null)) {
 			if (request.equals("")) continue;
 			response = processRequest(request, inFromServer, clientSocket);
