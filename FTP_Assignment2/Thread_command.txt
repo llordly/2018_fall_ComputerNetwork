@@ -1,0 +1,31 @@
+CD				GET
+server -> client(sucessed)		server -> client(sucessed)
+1 : status code			1 : status code
+2 : response length			2 : file size
+3 : response			3 : file data
+
+server -> client(failed)		server -> client(failed) 
+1 : status code			1 : status code
+2 : status phrase			2 : status phrase
+
+client -> server			client -> server
+1 : command			1 : command
+
+LIST				PUT
+server -> client(sucessed)		server -> client(sucessed)
+1 : status code			1 : status code
+2 : response length			2 : status phrase
+3 : response
+
+server -> client(failed)		server -> client(failed)
+1 : status code			1 : status code
+2 : status phrase			2 : status phrase
+
+client -> server			client -> server(sucessed)
+1 : command			1 : command
+				2 : file size
+				3 : file data
+
+				client -> server(failed)
+				1 : command
+				2 : failed reason

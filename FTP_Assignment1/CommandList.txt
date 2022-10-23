@@ -1,0 +1,17 @@
+-1 : such file does not exist (GET)
+-2 : Failed - directory can not be downloaded (GET)
+-3 : directory name is invalid (CD)
+-4 : failed - directory is not exists (CD)
+-5 : directory name is invalid (LIST)
+-6 : There are not enough commands (LIST)
+-7 : Failed for File corruption. Please put again (PUT)
+-10 : failed for unknown reason (PUT)
+
+
+
+
+
+list - 커맨드, 디렉토리 이름
+get - 파일 존재x, 
+put - 알 수 없는 이유, 파일붕괴
+cd - 디렉토리 존재x, 디렉토리 이름 잘못됨.
