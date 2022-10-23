@@ -73,14 +73,22 @@
 
 ## #3 Result and Analysis
 
-- 서버를 실행하면 “server is opened”라는 메시지가 콘솔창에 뜬다. 
+- 서버를 실행하면 “server is opened”라는 메시지가 콘솔창에 뜬다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img1.png?raw=true' style="zoom:50%;" >
 - Client가 실행되어 서버에 연결되면 “connected”라는 메시지라 서버에 뜬다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img2.png?raw=true' style="zoom:50%;" >
 - “CD” 만 입력했을 경우 서버의 현재 디렉토리를 리턴한다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img3.png?raw=true' style="zoom:50%;" >
 - “LIST .”을 입력하면 서버의 현재 디렉토리의 파일의 내용을 출력해준다.
-- 위는 상위 디렉토리로 이동한 후 디렉토리의 list를 출력한 결과이다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img4.png?raw=true' style="zoom:50%;" >
+- 상위 디렉토리로 이동한 후 디렉토리의 list를 출력한 결과이다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img5.png?raw=true' style="zoom:50%;" >
 - “GET filename”을 하면 서버로부터 파일을 내려받고 “Received filename filesize bytes”라는 메시지를 클라이언트에 띄워준다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img6.png?raw=true' style="zoom:50%;" >
 - “PUT filename”을 입력할 경우에는 정상 전송이 완료되었을 경우에는 “filename transferred/ filesize bytes”가 cilent에 보여진다. 실제로 전송되었는지 확인하기 위해 “LIST .”을 해보면 전송이 실제로 이루어졌음을 확인할 수 있다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img7.png?raw=true' style="zoom:50%;" >
 - client로부터 “Done”이라는 명령어가 들어왔을 경우에는 통신이 종료되며 서버에는 “connect closed”라는 메시지가 뜨며 Client는 프로그램이 종료된다.
+  - <img src='https://github.com/llordly/ComputerNetwork/blob/master/FTP_Assignment1/img8.png?raw=true' style="zoom:50%;" >
 
 
 
